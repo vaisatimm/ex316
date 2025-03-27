@@ -1,0 +1,41 @@
+### 8 Creating and Accessing Virtual Machines ###
+
+Exposing vmi to ssh --> creation of NodePort. 
+
+You can create only RH vms templates, but if you install the "Kubevirt common templates package", you can create templates for Ubuntu, Suse etc. 
+
+Images in RAW or QCOW2 format --> ISO
+
+You can use PVC as image, like clone of the PVC. 
+
+You can use yaml to create vms or templates.
+
+You can take snapshots of vms.
+
+VNC allows you to access to graphical interface and command line interface.
+Serial console only to text interface.
+
+You can access to vms through virtctl:
+
+$ virtctl console vm-name -n project-name (namespace)
+
+or 
+
+$ virctl vnc vm-name -n project-name (namespace) 
+
+virtctl used with vnc subcommand calls the remote-viewer application, that needs to be installed in the vm.
+
+You can make a port-forward to your local machine with the --proxy-only option that will open a port on your 
+local machine and then you can access to the vm with the vnc client.
+
+virtctl vnc --proxy-only -n test-vms centos-hello
+{"port":34961}
+go to another tab:
+
+vncviewer localhost:34961
+
+then it will open a window.
+
+ 
+
+ 

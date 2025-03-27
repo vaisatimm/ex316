@@ -1,0 +1,31 @@
+### 7 Chapter 2.  Running and Accessing Virtual Machines ###
+A VM is the "recipe" of how to create a VMI: virtual machine instance. 
+
+User --> virt-controller (pod operator) --> virt-handler (daemonset) --> virt-launcher (pod, in which there is the libvirtd container to execute the VMI like an isolated process)
+
+Consoles:
+1. VNC Console;
+2. Serial Console;
+3. RDP Console.
+
+You can connect the network interface of your VMI to the:
+1. Default Pod network, using "Masquerade binding method";
+
+How it works?
+
+The network interface of the VMI is attached to the virt-launcher pod network interface. 
+The virt-launcher pod will masquerade the network of out VMI, since it's easier to use this solution inside the cluster.
+The communication is natted behind the virt-launcher Pod IP, so that all the pods of the cluster will communicate with the VMI, 
+like a normal pod. 
+Inside the virt-launcher pod there is the virt-launcher container (isolating the VMI)
+that containes the process of virtlibd and QEMU process. 
+
+The virt-launcher pod will create a Tap NIC or virtio NIC, attached to the VM and apply the NAT iptables/nftables for the NAT.
+With this method, by default the vmi is accessible only within the cluster. 
+
+2. In order to attach the network interface of the VMI to and external network or in order to attach your vm to multiple 
+network interfaces you can use a CNI plug-in, Multus. 
+To connect to an external network, you must create a linux-bridge network attachment definition that exposes the layer-2 device to a specific namespace. 
+In other words, you create a bridge that exposes the LAN of the vm to a specific namespace. 
+
+

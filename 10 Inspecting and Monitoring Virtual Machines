@@ -1,0 +1,22 @@
+### 10 Inspecting and Monitoring Virtual Machines ###
+
+$ oc rhs virt-launcher-vmi-name
+
+sh-5.1 $ virsh list #to get the list of domains (virtual guests: the vms)
+
+sh-5.1 $ virsh dumpxml vmi-name #to see the xml of the complete definition of the domain
+
+You can launch virsh command inside the pod without having to open a shell inside the pod to use virsh.
+
+virtctl completion bash > vctl.completion
+source vctl.completion 
+
+$ virtctl fslist vm-name -n namespace # to list the FS of a vm
+
+$ virtctl guestosinfo vm-name -n namespace #to get info about the os and guest agent
+
+$ oc adm top po
+
+
+
+

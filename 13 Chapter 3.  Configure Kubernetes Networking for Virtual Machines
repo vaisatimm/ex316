@@ -1,0 +1,45 @@
+### 13 Chapter 3.  Configure Kubernetes Networking for Virtual Machines ###
+
+Virtual Machine yaml manifest
+
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+......................
+  labels:
+    app: backendvm
+......................
+  name: backendvm
+spec:
+  dataVolumeTemplates:
+......................
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        tier: backend
+......................
+
+The labels of the vm will the be the same of the pod. 
+
+The additional labels of the virtual machine, will be applied to the next restart
+of the virtual machine instance. The label will be applied both to the vm and virt-launcher pod. 
+
+You can have a service for the vm: 
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: example
+  namespace: creating-accessing-vms
+spec: 
+  selector:
+    app: MyApp
+  ports:
+    - protocol: TCP
+      port: 80 #port on which the service listen
+      targetPort: 9376 #port on which the virt-laucher pod will accept the requests to route to the 
+		       #to the Network Interface inside the qemu-kvm process that represents the vm.
+
+
+

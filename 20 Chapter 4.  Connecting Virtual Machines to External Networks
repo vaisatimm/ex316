@@ -1,0 +1,91 @@
+### 20 Chapter 4.  Connecting Virtual Machines to External Networks 
+
+The process to connect a VM to an externat network with additional network interfaces is named: "Multihoming".
+
+This is achieved throught the Operators: NMState & Multus.
+In K8s pods communication is direct and thre is no need of NAT.
+Pods and system processes can communicate when they share on the same node.
+Containers in the same pod can communicate using the "lo" network interface and with the outside environment,
+using different ports.
+
+Multus CNI Plugin calls other CNI plugins for advanced networking functions: this is called "Chaining".
+Although you can add another network interface to the pod, the eth0 must always exists. 
+You cannot add net1 network interface and remove the eth0 network interface.
+
+Attaching a second network can be very important to isolate critical traffic for some kind of application, 
+that needs more security and higher performances, to implement some kind of authentication and encryption.
+
+In OpenShift the ClusterNetworkAddon operator is the one that manage additional network configurations, based
+on the Multus CNI plug-in.
+The Multus CNI plug-in is implemented through the "NetworkAttacchementDefinition" custom resource.
+
+A "NetworkAttacchementDefinition" is namespaced resources and it resides where the pods need to have an 
+additional external network interface. 
+
+A "NetworkAttachementDefinition" exposes the namespace for pods to an external network. 
+
+A "NetworkAttachementDefinition" requires you to specify what CNI Network Plugin you want to use for pods and vmis.
+
+Multus in sé non crea mai direttamente interfacce di rete: è un “meta‑plug‑in” CNI che ti permette di collegare (chain) 
+altri plug‑in CNI veri e propri, ognuno dei quali implementa un diverso tipo di collegamento di rete.
+
+Vedi quindi l’elenco dei plug‑in CNI che Red Hat OpenShift mette a disposizione da “agganciare” tramite Multus:
+
+#bridge
+Utilizza un bridge Linux per creare una rete “virtuale” interna al nodo, in modo che più pod possano parlarsi 
+tra loro (e con l’host) tramite un interfaccia bridge.
+
+#host‑device
+Fa passare direttamente al pod un device fisico di rete presente sull’host (PCI passthrough) 
+senza virtualizzazione: utile se vuoi che il pod parli “nativo” con la scheda di rete.
+
+#ipvlan
+Sfrutta la modalità IPVLAN del kernel: tutti i pod condividono il MAC dell’interfaccia fisica, 
+ma ottengono IP distinti. Leggero, a basse latenze, ma non raggiungibile da macchine esterne alla sottorete.
+
+#macvlan
+Simile a ipvlan, ma crea più interfacce virtuali, ognuna con MAC diverso. I pod possono comunicare fra loro 
+e con altri host della rete fisica come se fossero macchine autonome.
+
+#SR‑IOV
+Se hai hardware di rete SR‑IOV‑capable, puoi “strappargli” fino a decine di Virtual Functions (VF) e assegnarle 
+ai pod per avere prestazioni near‑bare‑metal (meno overhead di virtualizzazione).
+
+Quindi, riassumendo:
+
+1 - Multus = orchestratore/meta‑plug‑in, ti permette di attaccare più reti ai tuoi pod
+
+2 - bridge/host‑device/ipvlan/macvlan/SR‑IOV = i plug‑in CNI “backend” che effettivamente configurano le interfacce 
+sulla base della tecnologia scelta.
+
+
+### Ma questi bridge, host-device, ipvlan, macvlan, SR‑IOV sono plugin come Calico e Flannel?
+
+Sì, anche bridge, host‑device, ipvlan, macvlan e SR‑IOV sono dei veri e propri plug‑in CNI (esattamente come Calico o Flannel), 
+nel senso che ciascuno di essi ha il suo binario/esecutore che rispetta la specifica CNI e crea/configura interfacce di rete nei pod.
+
+
+La differenza principale sta nel ruolo che svolgono:
+
+#Calico, Flannel, Weave, Cilium…
+Sono spesso indicati come “network fabric” o “network providers”: gestiscono l’assegnazione degli IP, l’instradamento (BGP o VXLAN), 
+policy di rete (NetworkPolicy), e forniscono la rete “primaria” (default) per tutti i pod del cluster.
+
+#bridge, host‑device, ipvlan, macvlan, SR‑IOV
+Sono plug‑in “secondari” o “di attacco” (attachment) usati tipicamente con Multus per creare multiple interfacce nei pod, ognuna 
+su reti diverse. Non hanno un controller BGP né un sistema avanzato di policy, ma si limitano a “collegare” il namespace del pod 
+a un bridge Linux, a una VF SR‑IOV, a un macvlan/ipvlan, ecc.
+
+In pratica:
+
+Senza Multus
+– Calico/Flannel/… attaccano un’unica rete CNI a ogni pod.
+
+Con Multus
+– Multus usa uno “primary” plugin (ad esempio Calico) per la first network,
+– e poi “chaina” uno o più di questi (bridge, macvlan, SR‑IOV…) per aggiungere seconde (o terze, …) interfacce ai pod.
+
+Quindi, sì: sono plug‑in CNI al pari di Calico e Flannel, ma sono nati per casi d’uso “multihomed” 
+(più schede di rete in un singolo pod) piuttosto che per fornire l’intera connettività di cluster.
+
+

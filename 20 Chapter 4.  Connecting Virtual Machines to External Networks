@@ -89,3 +89,70 @@ Quindi, sì: sono plug‑in CNI al pari di Calico e Flannel, ma sono nati per ca
 (più schede di rete in un singolo pod) piuttosto che per fornire l’intera connettività di cluster.
 
 ### ALL THESE NETWORK COMPONENTS NEEDS TO BE CONFIGURED BEFORE CREATING A NETWORKATTACHEMENTDEFINITION
+
+
+
+
+
+
+###############################################################################
+#
+#
+
+
+Il problema da risolvere
+Hai un pod (o una VM) in Kubernetes e vuoi che, oltre alla sua solita interfaccia di rete “principale”, ne abbia un’altra collegata a un bridge speciale (per esempio una rete di management o di storage separata).
+
+Cosa sono i pezzi in gioco
+La “ricetta” del bridge
+– In KubeVirt (o in un altro CNI avanzato) hai già definito qualcosa (una CRD) che sa come costruire un bridge Linux sul nodo:
+
+si chiama “bridge‑dev”
+
+sa su quale interfaccia fisica appoggiarsi, se applicare VLAN, MAC‑spoof‑check, ecc.
+
+Il NetworkAttachmentDefinition (NAD)
+– È il pezzetto Kubernetes che contiene il JSON del plugin (cnv‑bridge, macvlan, ecc.), ossia la configurazione “grezza” di CNI:
+
+che tipo di plugin usare
+
+come chiamare il bridge
+
+eventuali opzioni (VLAN, macspoofchk…)
+
+Il ruolo dell’annotation
+L’annotation k8s.v1.cni.cncf.io/resourceName: bridge.network.kubevirt.io/bridge-dev serve da collegamento:
+
+Senza annotation: il NAD ha una configurazione, ma non “sa” a quale definizione esterna quella configurazione si riferisca.
+
+Con l’annotation: dici a Multus/KubeVirt:
+
+“Quando mi chiedi di applicare questo NAD, vai a leggere la CRD di nome bridge-dev nel gruppo bridge.network.kubevirt.io e usa i suoi dettagli per creare il bridge sul nodo.”
+
+Cosa succede “in pratica” quando parte il pod
+Il pod chiede a Multus di attaccarsi alla rete “bridge-dev”.
+
+Multus legge il NAD bridge-dev e trova l’annotation resourceName.
+
+Va a prendere la definizione esterna bridge.network.kubevirt.io/bridge-dev, recupera tutti i parametri (nome del bridge, VLAN, macspoofchk, ecc.).
+
+Invoca il plugin CNI (cnv-bridge) con quella configurazione:
+
+crea l’interfaccia nel namespace del pod
+
+la collega al bridge Linux giusto sul nodo
+
+applica le regole di sicurezza (MAC spoofing check, VLAN, …)
+
+In una frase:
+
+L’annotation serve a legare il tuo oggetto Kubernetes (NAD) alla definizione di rete esterna già creata (CRD), così Multus sa esattamente quale bridge o quale risorsa “vera” deve configurare quando partono i pod.
+
+
+
+
+
+
+
+
+

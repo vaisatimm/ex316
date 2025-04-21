@@ -176,3 +176,28 @@ Crei un NetworkAttachmentDefinition standard, e nell’annotation resourceName c
 Quando parte il pod, Multus va a quel CRD, ne legge il “tipo di CNI” e le opzioni, e configura l’interfaccia di conseguenza.
 
 Così il tuo NAD diventa “vivo”: non è solo un JSON generico, ma sa qual è il plugin esatto e la configurazione precisa da usare grazie a quella sola riga di annotation.
+
+ oltre a collegare il tuo NAD alla CRD “bridge.network.kubevirt.io/bridge‑dev”, quella annotation fa scattare anche il meccanismo di node selection per le VM (e i pod) che la usano.
+
+In breve:
+
+ResourceName → dice a Multus/KubeVirt quale CRD usare per configurare davvero il bridge.
+
+Side‑effect di KubeVirt‑Network‑Operator → in fase di startup l’operator rileva su quali nodi è presente il bridge bridge-dev (o la VF SR‑IOV, o il macvlan, ecc.) e applica una label a quegli stessi nodi (es. network.bridge-dev=present).
+
+Scheduling → quando crei una VM (o un pod) con quella NAD, il scheduler KubeVirt legge l’annotation, capisce quale label cercare e schedula la VM solo sui nodi etichettati.
+
+Senza l’annotation:
+
+Il NAD rimane “solo” un JSON che punti a un bridge, ma non ci sarà alcuna label sui nodi
+
+Sarà tua cura (via nodeSelector/affinity) evitare di mandare il pod/VM su macchine che non hanno il bridge
+
+Con l’annotation:
+
+KubeVirt‑Network‑Operator gestisce in automatico il labeling dei nodi
+
+Il tuo workload arriverà solo dove i prerequisiti di rete (il bridge‑dev) sono davvero presenti
+
+Così non rischi di finire su un nodo che non ha il bridge e vederti il CNI fallire.
+

@@ -88,4 +88,4 @@ Con Multus
 Quindi, sì: sono plug‑in CNI al pari di Calico e Flannel, ma sono nati per casi d’uso “multihomed” 
 (più schede di rete in un singolo pod) piuttosto che per fornire l’intera connettività di cluster.
 
-
+### ALL THESE NETWORK COMPONENTS NEEDS TO BE CONFIGURED BEFORE CREATING A NETWORKATTACHEMENTDEFINITION

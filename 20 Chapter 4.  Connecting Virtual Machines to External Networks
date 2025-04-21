@@ -155,4 +155,24 @@ L’annotation serve a legare il tuo oggetto Kubernetes (NAD) alla definizione d
 
 
 
+quindi quella annotation dice a k8s su quale crd appoggiarsi per creare la nad. quella crd su cui è appoggiarsi è lo specifico cni. 
 
+
+ChatGPT ha detto:
+
+Ha riflettuto per 4 secondi
+Esatto, hai centrato il punto:
+
+L’annotation k8s.v1.cni.cncf.io/resourceName nel tuo NAD indica esattamente quale CRD esterna (cioè quale risorsa custom nel cluster) Multus deve “leggere” per ottenere il tipo di CNI e i parametri da applicare.
+
+Quella CRD esterna è fornita dal plugin CNI specifico (es. il CRD bridge.network.kubevirt.io/bridge-dev per il plugin cnv‑bridge, oppure sriovnetwork.openshift.io/mia-rete-sriov per il plugin SR‑IOV, e così via).
+
+In pratica:
+
+Definisci la CRD del plugin (che sa come creare il bridge, la VF SR‑IOV, il macvlan, ecc.).
+
+Crei un NetworkAttachmentDefinition standard, e nell’annotation resourceName ci metti “<apiGroup>/<nomeCRD>”.
+
+Quando parte il pod, Multus va a quel CRD, ne legge il “tipo di CNI” e le opzioni, e configura l’interfaccia di conseguenza.
+
+Così il tuo NAD diventa “vivo”: non è solo un JSON generico, ma sa qual è il plugin esatto e la configurazione precisa da usare grazie a quella sola riga di annotation.

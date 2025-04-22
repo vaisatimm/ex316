@@ -1,1 +1,30 @@
 ### 21 Configuring Multihomed Nodes and Virtual Machines
+The NMSTate Operator can help us to configure the nodes in order to be ready 
+for the requirements imposed but the "NetworkAttachementDefinition"
+The MachineConfigOperator could help us to configure the nodes, but it's very
+intrusive, since when it applies the changes to the nodes, it needs to reboot them. 
+It talks to the machine config deamon present on each node, applies the configurations
+and then reboot them. 
+
+The NMState operator does not need to restart nodes.
+It collects the current network state of nodes creating some resources, and transforms
+the changes that we want do make in network configurations policies. 
+
+Install the NMState operator --> create an NMState instance to deploy the NMState controller
+on all the nodes. 
+
+You must create the NMState instance in the project openshift-nmstate.
+
+It will create 3 resources: 
+
+1 - NodeNetworkState (NNS): a readOnly resource that describe the network configurations. 
+    There will be one NNS per node. In the status there will be the network
+    interfaces and the configurations.
+
+2 - NodeNetworkConfigurationPolicy (NNCP): a resource that allows to change the node network
+    configuration. It can manages different types of network interfaces like: Linux Bridge,
+    bonding and Ethernet interfaces.
+    NOTE: a Linux Bridge is a software feature integrated in the Linux Kernel. A Linux Bridge
+          connects different physical or virtual interfaces forwarding the Ethernet frames 
+	  based on MAC addresses. It's like a switch at data-link level. 
+3 - 

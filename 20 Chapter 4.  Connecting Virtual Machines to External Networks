@@ -200,4 +200,3 @@ KubeVirt‑Network‑Operator gestisce in automatico il labeling dei nodi
 Il tuo workload arriverà solo dove i prerequisiti di rete (il bridge‑dev) sono davvero presenti
 
 Così non rischi di finire su un nodo che non ha il bridge e vederti il CNI fallire.
-

@@ -27,4 +27,6 @@ It will create 3 resources:
     NOTE: a Linux Bridge is a software feature integrated in the Linux Kernel. A Linux Bridge
           connects different physical or virtual interfaces forwarding the Ethernet frames 
 	  based on MAC addresses. It's like a switch at data-link level. 
+    NodeNetworkConfigurationPolicy (NNCP) is applied to all the nodes in the cluster or just
+    to a subset of nodes, for example to compute nodes. 
 3 - 

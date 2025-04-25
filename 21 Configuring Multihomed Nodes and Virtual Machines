@@ -39,9 +39,118 @@ Configurare la vNIC di una VM in OpenShift Virtualization su un Linux bridge sig
 
  
 Praticamente quando vogliamo che il pod comunichi direttamente con la rete dei nodi, dobbiamo creare un oggetto
-chiamato Linux Bridge. In questo caso dobbiamo creare anche una network interface net1 per il nostro virt-launcher
-pod. Ricordiamo che all'interno della vm abbiamo delle delle schede di rete virtuali: eth0, che si collega alla scheda eth0 del pod al fine di comunicare con la rete di default dei pod (masquerade) attraverso la SDN OVN-Kubernetes collegata a Multus che fa la chain con altri network plugin "di attacco" secondary tipo "macvlan, ipvlan, Calico etc", ed "eth1" secondaria appunto che si collega alla "net1" (definita attraverso la NAD "NetworkAttachementDefinition") che consente attraverso Multus di collegarsi al OVS bridge (Open vSwitch), il quale sarà collegato ad un "bond0" per unire il throughput
-di due schede di rete fisiche. 
+chiamato Linux Bridge.
+
+In questo caso dobbiamo creare anche una network interface net1 per il nostro virt-launcher pod. 
+
+Ricordiamo che all'interno della vm abbiamo delle delle schede di rete virtuali: eth0, che si collega alla scheda eth0 del pod al fine di comunicare con la rete di default dei pod (masquerade) attraverso la SDN OVN-Kubernetes.
+OVN-Kubernetes, come CNI plugin principale è collegata a Multus che fa la chain con altri network plugin 
+"di attacco" secondary tipo "bridge CNI,macvlan, ipvlan, Calico etc" 
+che nel caso di una connessione bridge è il plugin secondario di nome "Bridge CNI" 
+(ricordiamo che un Linux bridge è una funzionalità software del kernel Linux 
+che quindi ha bisogno di essere abilitata sui nodi del cluster).
+"eth1" secondaria appunto che si collega alla "net1" (definita attraverso la NAD "NetworkAttachementDefinition") 
+che consente attraverso Multus di collegarsi al OVS bridge (Open vSwitch, alternativa a Linux Bridge, 
+più semplice rispetto a OVS bridge), il quale sarà collegato ad un "bond0" per unire il throughput
+di due schede di rete fisiche.
+
+OpenShift ammette un solo provider di rete predefinito per l’intero cluster; questo provider deve soddisfare il modello-pod di Kubernetes (tutti i pod si devono vedere fra nodi, IP univoci, ecc.).
+Dalla 4.x in poi Red Hat supporta solo due provider “default”:
+
+OVN-Kubernetes – soluzione SDN basata su OVS, oggi predefinita
+OpenShift Documentation
+OpenShift Documentation
+
+OpenShift SDN – legacy, in dismissione
+OpenShift Documentation
+Microsoft Learn
+
+I plugin “semplici” come bridge, macvlan, ovs-cni, sriov, ipvlan sono ammessi solo come reti aggiuntive tramite Multus
+Red Hat Documentation
+Red Hat Documentation
+. Il Cluster Network Operator li marca infatti come additional networks
+Red Hat Documentation
+.
+
+
+Ruolo di Bridge CNI come rete secondaria
+Primary network → OVN-Kubernetes (o SDN) continua a soddisfare il modello Kubernetes.
+
+Secondary network → Multus chiama Bridge CNI (o OVS CNI, Macvlan, SR-IOV…) e collega una seconda NIC del pod/VM a un bridge Linux o a un bridge OVS dedicato
+KubeVirt.io
+KubeVirt.io
+.
+
+È la modalità indicata dalla documentazione ufficiale per mettere le VM KubeVirt/virt-launcher direttamente su VLAN fisiche
+OpenShift Documentation
+.
+Che alternative “senza OVN” esistono?
+OpenShift SDN – unica opzione supportata se vuoi rinunciare a OVN ma restare pienamente supportato 
+OpenShift Documentation
+OKD Documentation
+.
+
+Cilium, Calico e altri – possibili come default solo reinstallando o creando cluster non-OCP; in OpenShift 4.x non sono supportati out-of-the-box come provider primario.
+
+eBPF-solo / Bridge-solo – configurazioni fai-da-te; valide su Kubernetes “vanilla”, ma fuori dal supporto Red Hat.
+
+In OpenShift Virtualization il bridge Linux (o il bridge OVS tramite OVS CNI) è pensato solo per reti aggiuntive via Multus; il cluster ha comunque bisogno di OVN-Kubernetes (o, se proprio, OpenShift SDN) come rete primaria.
+Tentare di rimpiazzarla con Bridge CNI mette tutti i pod sulla LAN fisica, rompe le promesse del modello Kubernetes e non è supportato: ecco perché sembrava “una cazzata” – e in effetti, sul piano del supporto Red Hat, lo è.
+
+
+OVN-Kubernetes incorpora Open vSwitch (OVS) per costruire e governare un’unica rete “di default” (overlay Geneve + NetworkPolicy) per tutti i pod / VM del cluster — lo fa parlando con OVSDB e programmando i flussi OpenFlow senza passare da un plugin CNI esterno
+OpenShift Documentation
+OpenShift Documentation
+OpenShift Documentation
+.
+### !!! IMPORTANTE !!! ###
+L’OVS CNI è invece un plugin CNI minimalista: non possiede un control-plane, non crea tunnel, non fa policy; semplicemente, quando Multus lo invoca, collega l’interfaccia secondaria del pod a #!!!# UN BRIDGE OVS GIA' ESISTENTE #!!!
+usando una veth, lasciando a te il compito di preparare quel bridge e di dargli connettività!!!
+
+
+
+In pratica l’OVS CNI è il “cacciavite” che ti permette di agganciare una seconda o terza interfaccia a un bridge OVS totalmente fuori dal dominio di OVN-K8s, esattamente come Bridge CNI fa con il Linux bridge 
+OpenShift Documentation
+OpenShift Documentation
+. Multus orchestra l’ordine dei plugin: prima il primary (OVN-K8s), poi l’OVS CNI, così la VM/pod esce con due reti distinte 
+
+
+Dettagli operativi che spiegano la distinzione
+Scope di gestione: OVN-K8s crea i suoi bridge (br-int, br-ex) e non tocca quelli che tu definisci per altri scopi; l’OVS CNI lavora solo sui bridge che gli indichi —with nessuna interazione con i database OVN
+Express YourSelf !
+.
+
+Chi configura il bridge: l’OVS CNI «non configura i bridge, è compito dell’admin crearli e collegarli alla rete»
+GitHub
+eprints.ost.ch
+.
+
+Supporto OpenShift: Red Hat supporta l’OVS CNI esclusivamente come additional network via Multus; la rete primaria deve rimanere OVN-Kubernetes (o, legacy, OpenShift SDN)
+
+Quando non ti serve l’OVS CNI
+Se l’unica esigenza è la connettività pod-to-pod/VM e le NetworkPolicy fornite da OVN-K8s.
+
+Se non hai bisogno di portare quelle workload in VLAN esterne oppure su un bridge OVS dedicato.
+
+Quando l’OVS CNI è la scelta giusta
+Devi dare alle VM KubeVirt una NIC “provider” su una VLAN fisica senza uscire dall’host con SR-IOV.
+
+Vuoi QoS o mirroring per un gruppo di pod su un bridge OVS-DPDK ad alte prestazioni.
+
+Gestisci un cluster dove il primary CNI è Calico/Cilium ma una parte dei workload richiede OVS per leggi di rete specifiche.
+
+In sintesi
+OVN-K8s ≈ “intero sistema SDN” (controller + overlay + policy) che internamente usa OVS solo per la rete primaria.
+
+OVS CNI ≈ “adattatore CNI” che ti consente, quando serve, di collegare altre interfacce dei pod/VM a qualsiasi bridge OVS che hai preparato.
+
+I due non sono in conflitto: l’OVS CNI completa OVN-K8s quando hai bisogno di connessioni OVS fuori dal suo overlay, o lo sostituisce in cluster dove OVN non è presente.
+
+
+
+
+
+
 
 Nel contesto KVM, Linux bridge e Open vSwitch (OVS) offrono due livelli di complessità e funzionalità:
 

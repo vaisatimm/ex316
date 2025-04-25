@@ -15,7 +15,7 @@ on all the nodes.
 
 You must create the NMState instance in the project openshift-nmstate.
 
-It will create 3 resources: 
+It will create different resources: 
 
 1 - NodeNetworkState (NNS): a readOnly resource that describe the network configurations. 
     There will be one NNS per node. In the status there will be the network
@@ -28,5 +28,9 @@ It will create 3 resources:
           connects different physical or virtual interfaces forwarding the Ethernet frames 
 	  based on MAC addresses. It's like a switch at data-link level. 
     NodeNetworkConfigurationPolicy (NNCP) is applied to all the nodes in the cluster or just
-    to a subset of nodes, for example to compute nodes. 
-3 - 
+    to a subset of nodes, for example to compute nodes. These resources are not namespaced,
+    so you have to be a cluster-admin in order to see them. 
+3 - When you apply the NNCP the operator will create a "NodeNetworkConfigurationEnactment (NNCE),
+    that is a report about the changes on the node. If the node cannot be configurated to state
+    expressed in the NNCE than it will rollback to the previous configuration giving us the data
+    in order to troubleshoot.

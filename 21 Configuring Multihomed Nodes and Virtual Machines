@@ -37,5 +37,138 @@ It will create different resources:
 
 Configurare la vNIC di una VM in OpenShift Virtualization su un Linux bridge significa farla apparire alla rete fisica come un server tradizionale: ottiene direttamente un indirizzo IP e un MAC “reali” sulla stessa subnet o VLAN dei sistemi on-prem, evita gli overlay e le traduzioni di rete garantendo throughput wire-speed, consente senza filtri traffico broadcast/multicast e PXE, permette appliance e software legacy che dipendono dal livello 2 o da licenze legate a IP/MAC, si integra immediatamente con firewall, IDS e load-balancer già in produzione, e rende indolori i lift-and-shift da ambienti VMware/KVM, a patto di curare con attenzione il cablaggio delle VLAN sui nodi e le misure di sicurezza perché l’esposizione L2 è diretta.
 
+ 
+Praticamente quando vogliamo che il pod comunichi direttamente con la rete dei nodi, dobbiamo creare un oggetto
+chiamato Linux Bridge. In questo caso dobbiamo creare anche una network interface net1 per il nostro virt-launcher
+pod. Ricordiamo che all'interno della vm abbiamo delle delle schede di rete virtuali: eth0, che si collega alla scheda eth0 del pod al fine di comunicare con la rete di default dei pod (masquerade) attraverso la SDN OVN-Kubernetes collegata a Multus che fa la chain con altri network plugin "di attacco" secondary tipo "macvlan, ipvlan, Calico etc", ed "eth1" secondaria appunto che si collega alla "net1" (definita attraverso la NAD "NetworkAttachementDefinition") che consente attraverso Multus di collegarsi al OVS bridge (Open vSwitch), il quale sarà collegato ad un "bond0" per unire il throughput
+di due schede di rete fisiche. 
+
+Nel contesto KVM, Linux bridge e Open vSwitch (OVS) offrono due livelli di complessità e funzionalità:
+
+Linux bridge
+
+Cos’è: bridge di rete incluso nel kernel, usato di default da libvirt.
+
+Pro: configurazione semplice (con virsh, virt-manager o nmcli), integrazione out-of-the-box, ideale per reti base (NAT o bridge verso LAN), basso overhead.
+
+Contro: niente tunneling (VXLAN/GRE), assenza di OpenFlow, QoS e ACL avanzate; limitato a scenari monotenant.
+
+Open vSwitch
+
+Cos’è: switch virtuale SDN-ready con supporto a OpenFlow e tecnologie overlay.
+
+Pro: VXLAN/GRE/Geneve, mirroring, QoS, ACL, integrazione con controller (OVN, OpenDaylight), perfetto per infrastrutture cloud e multi-tenant.
+
+Contro: più complesso da installare e gestire (ovs-vsctl, XML libvirt manuale), richiede pacchetti aggiuntivi e configurazioni extra.
+
+Quando scegliere
+
+Reti semplici (VM che devono uscire su Internet o in LAN): Linux bridge è più rapido da mettere in piedi e sufficientemente stabile.
+
+Reti avanzate (isolamento, segmentazione, overlay, SDN): OVS garantisce granularità e scalabilità maggiori.
+
+Mix & Match
+Nulla vieta di usare entrambi sullo stesso host: lasci Linux bridge per il traffico “standard” e OVS dove servono tunneling o policy avanzate. In questo modo puoi ottimizzare semplicità e potenza di rete in base alle esigenze delle tue VM.
+
+
+
+### Che relazione c'è tra OVN Kubernetes, OVS e Multus, sono un po confuso?
+
+1. Open vSwitch (OVS)
+Cos’è: un switch virtuale “L2/L3” implementato in kernel (con componenti userspace).
+
+Ruolo: fornisce il datapath (tabelle MAC, OpenFlow, tunneling) su cui si appoggiano soluzioni SDN/overlay.
+
+2. OVN-Kubernetes
+Cos’è: un CNI plugin per Kubernetes basato su OVN (Open Virtual Network), il control-plane SDN di Open vSwitch.
+
+Ruolo:
+
+Northbound: prende le policy di rete (“Service”, “NetworkPolicy”, “LogicalSwitch” ecc.) da Kubernetes API.
+
+Southbound: traduce in flussi OpenFlow e config OVNDB che poi OVS applica alle interfacce dei pod.
+
+Come usa OVS:
+
+Installa un daemon ovn-controller su ogni nodo che parla con l’OVN Southbound DB.
+
+Configura i bridge OVS (br-int, br-ex) e i tunnel (Geneve/UDP) per realizzare la rete overlay tra nodi.
+
+3. Multus CNI
+Cos’è: un “meta-plugin” CNI per Kubernetes.
+
+Ruolo: ti permette di montare più interfacce di rete in uno stesso pod, delegando la creazione a più plugin (es. OVN-Kubernetes, macvlan, sriov, altro).
+
+Relazione con OVN-K8s e OVS:
+
+Senza Multus: puoi usare solo un CNI per pod (es. il plugin OVN-Kubernetes).
+
+Con Multus:
+
+Primary CNI può essere OVN-Kubernetes (gestisce la rete “main”).
+
+Secondary CNI possono essere altri (macvlan, ipvlan, Calico, o persino un altro OVN network).
+
+Tutte le interfacce aggiuntive finiscono comunque su bridge/port di OVS o sulle reti definite dal plugin secondario.
+
+In sintesi
+OVS è lo switch di basso livello.
+
+OVN-Kubernetes è il control-plane/container-networking che sfrutta OVS per costruire overlay e policy.
+
+Multus è il “gestore” che ti permette di affiancare a OVN-Kubernetes (o a qualsiasi altro CNI) ulteriori reti dentro lo stesso pod.
+
+Così, se hai bisogno di una sola rete Kubernetes isolata, basta OVN-K8s+OVS. Se invece servono più interfacce (per storage, management, servizi separati…), aggiungi Multus e scegli i plugin più adatti.
+
+
+
+
++--------------------------------------------------------------------------------------------------------------+
+| Node                                                                                                         |
+|                                                                                                              |
+|   +------------------------------------------------------------------------------------------------------+   |
+|   | virt-launcher pod                                                                                    |   |
+|   |                                                                                                      |   |
+|   |    +--------------------------------------------------------------------------------------------+    |   |
+|   |    | VM                                                                                         |    |   |
+|   |    |                                                                                            |    |   |
+|   |    |   eth0 ─┐                                                                       ┌─ eth1    |    |   |
+|   |    +---------+-----------------------------------------------------------------------+----------+    |   |
+|   |              │                                                                       │               |   |
+|   |            eth0 (pod iface)                                                      net1 (pod iface)    |   |
+|   +--------------|-----------------------------------------------------------------------|---------------+   |
+|                  |                                                                       |                   |
+|                  |                          NetworkAttachmentDefinition (defines) ─────▶|                   |
+|                  |                                                                       |                   |
+|                  |                                                                       |                   |
+|                  |                                                                       |                   |
+|                  |    +------------------------+-------------------------+               |                   |
+|                  |    |  Pod net   |  Service net  |                     |               |                   |
+|                  |    +----------------------------+                     |               |                   |
+|                  |                 SDN                                   |               |                   |
+|                  |    ---------------------------------------------------|---------------|---------------+   |
+|                  |                              Multus                   ▼                               |   |
+|                  |    ----------------------------------------------------|------------------------------|   |
+|                  |                     ▲               ▲                  |                              |   |
+|                  |                     │               │                  |                              |   |
+|                  |         reports status (NNCE)       │                  │   defines (NNCP)             |   |
+|                  |                     │               │                  │                              |   |
+|   +--------------|---------------------|---------------|------------------|------------------------------|   |
+|   |              |                     |               |                  |                              |   |
+|   |  +-----------v------------+   +----v-------------+ |  +--------------v-------------+                 |   |
+|   |  |  OVS bridge br-ex      |   | bond0            | |  |  Linux bridge br0           |                |   |
+|   |  |                        |   |                  | |  |                             |                |   |
+|   |  |  nic  |  nic           |   +------------------+ |  |  bond1                      |                |   |
+|   |  +-------|---------------+                        |  |                              |                |   |
+|   |          |                                        |  |  nic  |  nic                 |                |   |
+|   |          +----------------------------------------+  +------------------------------+                |   |
+|   |                                                                                                      |   |
++---|------------------------------------------------------------------------------------------------------|---+
+    |                                                                                                      |
+    |  Default network                                                                                     |
+    |                                                                                                      |
+    |                                                                                   Other network      |
+    +------------------------------------------------------------------------------------------------------+
+
 
 

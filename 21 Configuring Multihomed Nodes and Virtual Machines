@@ -34,3 +34,8 @@ It will create different resources:
     that is a report about the changes on the node. If the node cannot be configurated to state
     expressed in the NNCE than it will rollback to the previous configuration giving us the data
     in order to troubleshoot.
+
+Configurare la vNIC di una VM in OpenShift Virtualization su un Linux bridge significa farla apparire alla rete fisica come un server tradizionale: ottiene direttamente un indirizzo IP e un MAC “reali” sulla stessa subnet o VLAN dei sistemi on-prem, evita gli overlay e le traduzioni di rete garantendo throughput wire-speed, consente senza filtri traffico broadcast/multicast e PXE, permette appliance e software legacy che dipendono dal livello 2 o da licenze legate a IP/MAC, si integra immediatamente con firewall, IDS e load-balancer già in produzione, e rende indolori i lift-and-shift da ambienti VMware/KVM, a patto di curare con attenzione il cablaggio delle VLAN sui nodi e le misure di sicurezza perché l’esposizione L2 è diretta.
+
+
+

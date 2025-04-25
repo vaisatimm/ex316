@@ -107,6 +107,63 @@ OpenShift Documentation
 L’OVS CNI è invece un plugin CNI minimalista: non possiede un control-plane, non crea tunnel, non fa policy; semplicemente, quando Multus lo invoca, collega l’interfaccia secondaria del pod a #!!!# UN BRIDGE OVS GIA' ESISTENTE #!!!
 usando una veth, lasciando a te il compito di preparare quel bridge e di dargli connettività!!!
 
+Quindi una NodeNetworkConfigurationPolicy crea l'OVS switch che non viene gestito da OVN-k8s? Così poi OVS CNI plugin può gestirlo fuori dal controllo di OVN-k8s?
+
+Una NodeNetworkConfigurationPolicy (NNCP) servita dall’operatore Kubernetes NMState ti consente di creare (o modificare) un bridge OVS sul nodo – per esempio br-phys – fuori dal dominio di OVN-Kubernetes, che invece continua a gestire solo i suoi bridge interni (br-int, br-ex) e i relativi tunnel Geneve / OpenFlow.
+OpenShift Documentation
+OpenShift Documentation
+
+Una volta che il bridge OVS esiste, il plugin OVS CNI (invocato da Multus come rete secondaria) non fa altro che attaccare la porta del pod/VM a quel bridge, senza toccare né i database OVN né i flussi creati da OVN-K8s: in pratica i due mondi restano separati e convivono.
+GitHub
+GitHub
+
+2. Perché serve la NNCP prima dell’OVS CNI
+Il plugin OVS CNI non crea bridge: si aspetta che esista già, altrimenti fallisce.
+GitHub
+
+NNCP è dichiarativo: descrivi lo stato desiderato (type: ovs-bridge, porte, VLAN) e l’operatore riconcilia sui nodi.
+GitHub
+OpenShift Documentation
+
+Isolamento dal control-plane OVN: il bridge NNCP non viene registrato nei DB OVN, quindi OVN-K8s non vi applica policy né tunnel; resta un “provider-network” L2/L3 che amministri tu.
+OpenShift Documentation
+
+Esempio concettuale (senza comandi):
+NNCP:        crea br-phys ←→ eth0 (fisica)          # livello nodo
+OVN-K8s:     gestisce br-int, tun0, flussi          # overlay principale
+OVS CNI:     net1 del Pod → br-phys (port: vethXYZ) # rete secondaria
+
+Il pod/VM esce quindi con due NIC:
+
+net0 → overlay OVN (ClusterIP, NetworkPolicy)
+
+net1 → bridge OVS “provider” (LAN fisica, VLAN, QoS openflow personalizzabile)
+
+3. Vantaggi dell’approccio
+Separation of concerns – OVN resta snello e continua a offrire SDN di default; il bridge OVS aggiuntivo fornisce accesso diretto a reti fisiche o servizi che richiedono VLAN/QoS dedicate.
+OpenShift Documentation
+
+Hardware offload opzionale – il bridge creato via NNCP può essere impostato per l’offload Mellanox con parametri che OVS CNI capisce ma che OVN non gestirebbe.
+GitHub
+
+Supporto pieno e documentato – La combinazione “NNCP + OVS CNI come additional network” è l’unico flusso supportato da Red Hat quando vuoi collegare VM OpenShift Virtualization a una rete provider locale (topologia localnet).
+OpenShift Documentation
+OpenShift Documentation
+
+4. Limiti da ricordare
+Responsabilità delle policy – Sul bridge creato da NNCP dovrai gestire firewall, ACL o VLAN tagging a mano (o con OpenFlow personalizzato), perché OVN-K8s non applica le sue NetworkPolicy lì sopra.
+OpenShift Documentation
+
+Visibilità e monitoraggio – Strumenti che osservano solo br-int (per esempio l’agent NetObserv) non vedranno il traffico sul nuovo bridge: va incluso esplicitamente.
+OpenShift Documentation
+
+Coerenza tra nodi – Ogni nodo che deve ospitare quelle pod/VM deve avere la stessa NNCP applicata e in stato Available, altrimenti la schedulazione fallirà.
+OpenShift Documentation
+
+Morale
+Sì*, una NodeNetworkConfigurationPolicy può (e deve) creare l’OVS bridge da usare come provider network.
+
+Sì*, OVS CNI poi ci attacca le interfacce dei pod/VM senza che OVN-Kubernetes interferisca: i due livelli operano in spazi separati ma compatibili, permettendoti di unire overlay SDN e connettività diretta su OVS dove serve.
 
 
 In pratica l’OVS CNI è il “cacciavite” che ti permette di agganciare una seconda o terza interfaccia a un bridge OVS totalmente fuori dal dominio di OVN-K8s, esattamente come Bridge CNI fa con il Linux bridge 

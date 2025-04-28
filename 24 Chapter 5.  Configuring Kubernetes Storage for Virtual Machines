@@ -1,1 +1,49 @@
-### 24 Chapter 5.  Configuring Kubernetes Storage for Virtual Machines
+### 24 Chapter 5.  Configuring Kubernetes Storage for Virtual Machines 
+
+Backend storage can present storage to vm and pod like "block storage" and "FS storage".
+The difference is that in the first case it gets presented a "raw" block device to pods and 
+in the second case it gets presented a FS already prepared to pods and vms.
+
+- "BLOCK DEVICE" case: you have to use the accessMode: RWO, unless there is some sort of mechanism that prevents
+some sort of concurrent access to the block by two pods. VMIs use storage in Block mode and we will see how to 
+enable the possibility to access in RWM. PVC with Block Device mode for a vm is difficult to configure.
+- "FILE SYSTEM" case: if you have a NFS fs for example, you present al already formatted fs that can be share
+and accessed by different pods at the same time. PVC with FS Device mode for a vm is not optimized for workload.
+
+In the context of OCP Virtualization, if you specify a pvc in block mode, you usually specify a image disk source.
+OCP V. would transfer the image onto the block device, this pvc can be attached to the virt-launcher pod as a block
+dev and transfered to the pod as a disk block /dev/xvda. This is more performat because for each transfer there is a 
+direct protocl attaching the block device.
+
+OCP V. --> | Transfer the image OS onto the disk block | --> | The PVC gets the block | --> | PVC gets attached to pod | -->
+--> | PVC gets transfered from the pod to the vm | --> | The VM sees the block |
+
+If the pvc is in fs mode, the source image gets created on that FS as a disk image. It will be copied 
+as cucow or raw image, disk.img. This pvc will be mounted in the pod and then it will be visible into the vm. 
+
+Since these operations that involves the transfer of the image of the OS, are complicated then OCP V. introduces 
+two new resources that helps to allocate the pvc and then the second to populate the pvc of the virtual machine. 
+
+1 - StorageProfile: for each storageclass, there can be a storageprofile that will give you the default that are optimized
+for virtualMachines disks. StorageProfiles are clusterwide resources. 
+
+2 - DataVolume: describes how to initialize a disk. You can see what storageprofiles are available just taking a look at
+the storage classes related. For example for the: 
+
+   ocs-external-storagecluster-ceph-rbd-virtualization (STORAGECLASS) ---> there will be ---> ocs-external-storagecluster-ceph-rbd-virtualization (STORAGEPROFILE)
+
+with the appropriate paramenters for the pvc: volumemode, accessmode, additional accessmode it will support. 
+
+You can create a virtual machine disk by using a DataVolume, you can specify the size of the pvc and the location of the image in
+qcaw or raw format. 
+
+
+
+
+
+
+
+
+
+
+

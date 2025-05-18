@@ -14,3 +14,20 @@ spec:
     kind: VirtualMachine
     name: fedora-vm
   ttlDuration: 1h
+
+$ virtctl vmexport create --vm=fedora-vmfedora-export
+
+The vm-export has two formats: gzip and raw. 
+
+To download a vm-export you need an export token, that is contained in a secret. 
+
+-------------------------
+
+$ virtctl vmexport download \
+  fedora-export \ 
+  --keep-me \ #to not delete the export after the download
+  --manife \ #to include the manifest bundle (manifests of vm, disk, network config etc)
+  --include-secret \ #to include the export token inside the manifests
+  --output fedora-vm.yml
+
+RIPRENDERE DA VIDEO N°36, MIN. 4' SEC. 48''

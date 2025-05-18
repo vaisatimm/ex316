@@ -1,0 +1,16 @@
+### 36 Chapter 7.  Advanced Virtual Machine Management 
+
+$ oc get vmexport
+
+
+apiVersion: export.kubevirt.io
+kind: VirtualMachineExport
+metadata: 
+  name: fedora-export
+  namespace: vms
+spec:
+  source: 
+    apiGroup: "kubevirt.io"
+    kind: VirtualMachine
+    name: fedora-vm
+  ttlDuration: 1h

@@ -31,3 +31,48 @@ $ virtctl vmexport download \
   --output fedora-vm.yml
 
 RIPRENDERE DA VIDEO N°36, MIN. 4' SEC. 48''
+
+The manifests contains: 
+- ca-certs;
+- exports token for downloading the volumes;
+
+If you want to migrate the vm from an existing ocp virtualization cluster to another ocp virt. cluster,
+you just need to have the manifests, ocp will download the volumes.
+
+The manifests contains: 
+- configmap for the ca-cert;
+- the secret for the export token;
+- the virtualMachine definition (where there is the url to download the volume).
+
+Before to export the virtual machine, you have to stop it. 
+
+You can also create a vmexport from a snapshot. 
+
+If you want to import the vm to another cluster than you have to apply the manifest into a project in 
+the new cluster. 
+
+The limit of virtctl is that you can import from kvm to kvm. 
+If you want to import from another virtualizator you have to use the: Migration Toolkit for Virtualization (MTV).
+
+You can install the "Migration Toolkit for Virtualization Operator" from the Operator Hub. 
+After the installation is complete you have to install a "VM migration controller" called "ForkliftController".
+
+The forkliftController will create different CR in the openshift-mtv: 
+
+- Provider;
+- NetworkMap;
+- StorageMap;
+- Plan;
+- Migration. 
+
+The "Provider CR" stores attributes that enable MTV to connect to and interact with the source and target VM providers. 
+The MTV can interact with the following hypervisors:
+
+- VMware vSphere;
+- Red Hat Virtualization (RHV);
+- Openstack;
+- Remote Openshift Virtualization Clusters;
+
+
+
+

@@ -73,6 +73,44 @@ The MTV can interact with the following hypervisors:
 - Openstack;
 - Remote Openshift Virtualization Clusters;
 
+Openshift virtualization can also import OVA, open virtual appliance.
+
+In the migration toolkit you "validation services" that validate the suitability of each vm for migration.
+It can generates a list of "concerns" for each vms to the migration of the virtualMachine. 
+In the list of "concers" there are the features that the vm uses but OCP virt. does not support. 
+
+In order to use the Migration Toolkit you need to create a NewtworkMap and a Storagemap CRs,
+to map a source network and source storage to an Openshift network and to a storage class, respectively. 
+
+You must create both network and storage mappings for a vm provider before starting a migration from that provider. 
+Then you have to create a "MigrationPlan" that is a list of vm to migrate from the same provider, with the 
+associated infrastructure mappings. 
+
+When you have the "Plan" CR, then you can run the MigrationPlan, which executes that Plan. 
+
+In the migration plan you can choose two types of migrations: 
+- cold migration (default): shutdown the vm, transfer the data to the target cluster, then it power the vm on.
+It is the safest migration, but it takes loger. 
+- warm migration: uses 2 stages: create a snapshot, a pre-copy, while the vm is running. It transfers the snapshot
+to the target cluster. Then you put the vm of the source environment in the cutover stage and the remaining data is 
+copied to the Openshift cluster. Since the majority of data can be transfered, when the vm is running, of course 
+the warm migration is much quicker. 
+
+Depending on virtualization provider, the migration toolkit create importer pod or conversion pod.
+The importer pod transfer the image of the virtualmachine in a dataVolume of the targeted OpenShift cluster. 
+The conversion pod run the "virt-v2v" tool to install and configure the required device drivers on the vm root disk, 
+for the vm to run on Openshift Virtualization, and then transfers the disk to a PVC. 
+
+$ oc logs -n target_namespace -f importer-rhv
+
+To cleanup all the resources that a vm migration involves, you must archive the migrationPlan. 
+With that the migration logs are deleted. 
+
+You have to remove temporary resources that might prevent some vm operations such as vm snapshots.
+
+So it is recommended to archive migrationPlans as soon as you complete the migration. 
+
+ 
 
 
 

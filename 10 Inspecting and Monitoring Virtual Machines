@@ -16,6 +16,15 @@ $ virtctl fslist vm-name -n namespace # to list the FS of a vm
 $ virtctl guestosinfo vm-name -n namespace #to get info about the os and guest agent
 
 $ oc adm top po
+-------------------------------------
+
+Prometheus scrapes the metrics from some endpoints.
+Thanos goes into Prometheus, search for duplicates metrics and it deduplicates them. 
+
+Grafana helps to visualize the metrics.
+Alertmanager helps to receive alerts.
+
+Prometheus uses the promQL language. 
 
 
 

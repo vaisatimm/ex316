@@ -1,2 +1,43 @@
 Chapter 6.  Create and Restore Backups of Virtual Machines
 
+We can create an export of a virtual machine with this command: 
+
+$ virtctl vmexport download vm2-export --keep-vme --manifest --include-secret --output ~/vm2.yaml
+
+VirtualMachineExport è un oggetto Kubernetes/KubeVirt.
+E' una richiesta di preparazione di export della virtual machine o come export del disco o come export dei manifest della vm.
+Non è il disco.
+Non è il file qcow2.
+
+fa questa cosa in pratica: non scarica il disco della VM, ma genera il manifest YAML di export relativo al VirtualMachineExport chiamato vm2-export e lo salva nel file ~/vm2.yaml. Con --include-secret, dentro al manifest include anche il Secret con gli header/token necessari a CDI per importare i volumi da un altro cluster.
+
+Spiegazione pezzo per pezzo:
+
+virtctl vmexport download
+usa la funzione download del comando vmexport. Questa modalità serve normalmente a scaricare un volume esportato, ma può anche restituire il manifest invece del disco quando usi l’opzione apposita.
+vm2-export
+è il nome del VirtualMachineExport su cui stai lavorando. In questo comando stai quindi usando un export già esistente, non lo stai creando al volo, perché non hai passato --vm, --snapshot o --pvc.
+--keep-vme
+dice a virtctl di mantenere il VirtualMachineExport dopo il comando. Questo è utile perché nel flusso normale, dopo un download, l’oggetto export può essere rimosso automaticamente se non chiedi di tenerlo. La doc lo descrive proprio come “retained after the download finishes”.
+--manifest
+fa sì che, invece di scaricare un volume/disco, virtctl recuperi il manifest della VM/export. Nella documentazione KubeVirt è descritto come l’opzione che restituisce le informazioni necessarie in YAML o JSON, scrivendole su file con --output oppure su standard output.
+--include-secret
+vale quando usi il manifest. Aggiunge al manifest anche un Secret con gli header corretti per CDI così il cluster di destinazione può fare l’import. La doc avverte che questo secret contiene il token in chiaro nel manifest.
+--output ~/vm2.yaml
+salva l’output nel file vm2.yaml dentro la tua home directory. Con il manifest, il formato di default è YAML, quindi qui stai salvando un file YAML pronto da applicare altrove con kubectl apply -f.
+
+In sostanza, il tuo comando equivale a dire:
+
+“Prendi l’export già esistente vm2-export, genera il manifest YAML per importarlo altrove, includi anche il Secret necessario all’import CDI, salvalo in ~/vm2.yaml, e non cancellare il VirtualMachineExport.”
+
+
+$ virtctl vmexport download vm2-export --volume vm2-volume --output ~/vm2-volume.img.gz
+
+Questo comando serve ad esportare il volume della tua virtual machine.
+
+Successivamente puoi cancellare la macchina virtuale e usare questi file per ricreare la vm e in seguito restore il volume. 
+
+$ oc apply -f ~/vm2.yaml
+
+$ virtctl image-upload dv vm2-volume --size 10Gi --image-path ~/vm2-volume.img.gz --storage-class ocs-external-storagecluster-ceph-rbd-virtualization 
+

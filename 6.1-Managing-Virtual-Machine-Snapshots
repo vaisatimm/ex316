@@ -1,0 +1,13 @@
+Managing Virtual Machine Snapshots
+
+In order to create a volumeSnapshot (vs), namespaced resource, 
+we need a volumeSnapshotClass, non namespaced resource, linked to a storageClass.
+
+Tu hai una macchina virtuale in KubeVirt, la quale utilizza uno storage definito da una StorageClass. Questa StorageClass deve supportare gli snapshot affinché tu possa avere anche una VolumeSnapshotClass. La VolumeSnapshotClass definisce come vengono creati gli snapshot. Quando crei uno snapshot, ottieni un VolumeSnapshot, che rappresenta il punto di snapshot, e il VolumeSnapshotContent, che è il contenuto effettivo dello snapshot (cioè i dati del volume). I DataVolume rappresentano i dischi dati delle VM e possono basarsi su snapshot.
+
+È importante capire che il VolumeSnapshotContent contiene solo i dati del volume. Non include la definizione della VM o le sue caratteristiche. Per conservare lo stato della VM, devi salvare la configurazione della VM separatamente. Così, snapshot e VM sono collegati ma gestiti separatamente.
+
+La differenza è sostanziale: uno snapshot è un punto nel tempo solo dei dati del disco, che puoi ripristinare come stato del volume. Invece, un export (come in un VM export) include non solo i dati del disco, ma anche la configurazione completa della macchina virtuale (CPU, RAM, impostazioni di rete, metadati, ecc.). In pratica, l’export ti permette di ricreare l’intera VM, mentre uno snapshot si limita al contenuto del disco. Quindi, snapshot è focalizzato sui dati, export è una copia completa della VM.
+
+Né lo snapshot né un export legato ai dati del volume contengono automaticamente la definizione della VM. La configurazione KubeVirt della VM (cioè la sua specifica completa: CPU, RAM, dispositivi, ecc.) va gestita separatamente. Se vuoi catturare l’intera VM (dati e definizione), devi esportare esplicitamente la configurazione della VM (ad esempio, il manifest YAML) e i dati. Quindi, senza un export specifico della definizione, non hai la descrizione della VM.
+

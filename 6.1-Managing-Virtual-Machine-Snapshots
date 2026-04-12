@@ -10,4 +10,9 @@ Tu hai una macchina virtuale in KubeVirt, la quale utilizza uno storage definito
 La differenza è sostanziale: uno snapshot è un punto nel tempo solo dei dati del disco, che puoi ripristinare come stato del volume. Invece, un export (come in un VM export) include non solo i dati del disco, ma anche la configurazione completa della macchina virtuale (CPU, RAM, impostazioni di rete, metadati, ecc.). In pratica, l’export ti permette di ricreare l’intera VM, mentre uno snapshot si limita al contenuto del disco. Quindi, snapshot è focalizzato sui dati, export è una copia completa della VM.
 
 Né lo snapshot né un export legato ai dati del volume contengono automaticamente la definizione della VM. La configurazione KubeVirt della VM (cioè la sua specifica completa: CPU, RAM, dispositivi, ecc.) va gestita separatamente. Se vuoi catturare l’intera VM (dati e definizione), devi esportare esplicitamente la configurazione della VM (ad esempio, il manifest YAML) e i dati. Quindi, senza un export specifico della definizione, non hai la descrizione della VM.
+Il qemu guest agent package permette di fare live snapshot e questo è incluso in tutte le installazioni di RH. 
+
+La macchina virtuale ha bisogno di essere spenta prima di essere restorata dalla snapshot.
+
+Ricorda: il volumeSnapshotContent non è namespaced.
 

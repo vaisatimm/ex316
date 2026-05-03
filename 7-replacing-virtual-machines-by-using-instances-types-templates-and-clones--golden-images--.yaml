@@ -9,4 +9,8 @@ This four elements are the base for the disk image.
 
 If you add the "sysprep" settings that remove the clones info of the base VM, then you have the "golden image".
 
+So, now, creating a VM is simple since it does not require to clone a vm, which requires the vm to be powered off.
+
+Image builder by Red Hat is a tool that allows you to create golden images for different platforms through a simple configuration/blueprint file, 
+that represets the recipe to create the image.
 

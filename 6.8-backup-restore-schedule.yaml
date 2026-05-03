@@ -1,0 +1,21 @@
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: my-restore
+  namespace: openshift-adp
+spec:
+  backupName: my-backup
+  restorePVs: true
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: my-schedule
+  namespace: openshift-adp
+spec:
+  schedule: '*/5 * * * *'
+  template:
+    includedNamespaces:
+      - my-project
+    storageLocation: oadp-dpa-1
+    snapshotVolumes: true

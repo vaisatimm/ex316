@@ -1,0 +1,63 @@
+[student@workstation backup-review]$ oc get backup,restore,schedule -A -o yaml | k neat
+apiVersion: v1
+items:
+- apiVersion: velero.io/v1
+  kind: Backup
+  metadata:
+    annotations:
+      velero.io/resource-timeout: 10m0s
+      velero.io/source-cluster-k8s-gitversion: v1.29.14+7cf4c05
+      velero.io/source-cluster-k8s-major-version: "1"
+      velero.io/source-cluster-k8s-minor-version: "29"
+    labels:
+      velero.io/storage-location: oadp-dpa-1
+    name: my-backup
+    namespace: openshift-adp
+  spec:
+    csiSnapshotTimeout: 10m0s
+    defaultVolumesToFsBackup: false
+    includedNamespaces:
+    - my-project
+    itemOperationTimeout: 4h0m0s
+    snapshotMoveData: false
+    snapshotVolumes: true
+    storageLocation: oadp-dpa-1
+    ttl: 720h0m0s
+    volumeSnapshotLocations:
+    - oadp-dpa-1
+- apiVersion: velero.io/v1
+  kind: Restore
+  metadata:
+    name: my-restore
+    namespace: openshift-adp
+  spec:
+    backupName: my-backup
+    excludedResources:
+    - nodes
+    - events
+    - events.events.k8s.io
+    - backups.velero.io
+    - restores.velero.io
+    - resticrepositories.velero.io
+    - csinodes.storage.k8s.io
+    - volumeattachments.storage.k8s.io
+    - backuprepositories.velero.io
+    includedNamespaces:
+    - my-project
+    itemOperationTimeout: 4h0m0s
+    restorePVs: true
+- apiVersion: velero.io/v1
+  kind: Schedule
+  metadata:
+    name: my-schedule
+    namespace: openshift-adp
+  spec:
+    schedule: '*/5 * * * * '
+    skipImmediately: false
+    template:
+      includedNamespaces:
+      - my-project
+      snapshotVolumes: true
+      storageLocation: oadp-dpa-1
+kind: List
+metadata: {}

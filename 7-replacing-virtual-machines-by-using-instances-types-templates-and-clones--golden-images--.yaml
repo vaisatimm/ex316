@@ -1,0 +1,12 @@
+### CREATING A GOLDEN IMAGE ###
+
+1 - Install OS
+2 - Configure system
+3 - Security harden (SCAP)
+4 - Install Apps and Agents
+
+This four elements are the base for the disk image.
+
+If you add the "sysprep" settings that remove the clones info of the base VM, then you have the "golden image".
+
+

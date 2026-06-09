@@ -22,3 +22,10 @@ tcpSocket  -> porta TCP aperta
 grpc       -> health check gRPC, se l'app lo supporta
 
 When you set the probes to the vm, you have to restart them, do not forget that!
+
+
+### Example
+
+readinessProbe:
+  tcpSocket:
+    port: 5432

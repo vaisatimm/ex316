@@ -1,0 +1,48 @@
+
+Scheduling a vm on a node can be done by using node selector based on label.
+
+Node Affinity is based on weighted prefereces, like 100 is the node that I want surely my vm running on, 
+but if I do not have a node with the label that has the weight of 100, the scheduler can choose a vm that have weight 80,
+or if not available, a node with a label with a weight of 60.
+
+We can define nodeAffinity in the tab of vm in the console. You specify the labels and weight: 
+
+- workload: gold, weight: 100;
+- workload: silver, weight: 80;
+
+For the node Affinity use the "Required during scheduling"
+
+
+We can configure an anti Affinity rule so that two vm does not run on the same node. 
+We will use the hostname of the node to separate the workloads, so we will use the label: kubernetes.io/hostname, this is not the way so that we separate the workload: 
+we are just saying that we will separate the workload to different nodes with different hostnames.
+
+So, we can set on vm2, the antiAffinity rule that says I don't want that is running on the node that contains the vm1. How we do that?
+We put the antiaffinity rule on vm2, with a label that is uniq to vm1 --> key: kubevirt.io/domain, Operator: in, Values: vm1 
+
+So when you restart vm2, it will be scheduled on a node that does not run vm1.
+
+
+THe difference between nodeAffinity and podAffinity is that in the first case you decide in which node will the pod/vm running,
+in the second case you decide "near" which pod or vm your pod or vm will run, indipendently from the node labels. We specify the label of the pod near which the pod will run. 
+So if I have vm1 with label kubevirt.io/domain=vm1, then I can put a podAffinity on vm2, saying that I want that the vm2 will run on the same node where the vm1 with label kubevirt.io/domain=vm1 is running.
+For example: podAffinity --> key: kubevirt.io/domain, Operator: in, Values: vm1 
+
+Everytime you put such rules you have to reboot the vm in order to take effect, since a new virt-laucher pod needs to be created near the pod we want or on the node we want in case of nodeAffinity.
+
+
+### Kind of Taints: 
+
+- NoExecute: if a vm is running there before the taint is applied then the vm will be evicted as soon as the taint gets applied. No other vm or pods will be scheduled on that node with that taint. The only excetion would be a toleration that basically means "ignore the NoExecute taint"
+- NoSchedule: no new vm or pods will be scheduled on that node, but the vms or pod already there will remain there. The only excetion would be a toleration that basically means "ignore the NoSchedule taint"
+- PreferNoSchedule: if a vm is on a node with this taint, even if it does not have a toleration will not be evicted, and will still run there. The scheduler will allow a pod or vm (even if it does not have a toleration) to run on that tainted node if it cannot be scheduled elsewhere.
+
+The command to taint a node is: 
+
+oc adm taint node worker02 tier=premium:NoSchedule
+oc adm taint node worker02 tier=premium:NoExecute
+
+We can put a toleration to the vm2 to run to the worker02 even if we have the taint NoSchedule on worker02. 
+
+Under the configuration --> scheduling tab of the vm, you can add: nodeSelector, toleration, Affinity, antiAffinity, podAffinity, podAntiAffinity rule. 
+

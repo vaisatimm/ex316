@@ -29,3 +29,13 @@ When you set the probes to the vm, you have to restart them, do not forget that!
 readinessProbe:
   tcpSocket:
     port: 5432
+
+readinessProbe:
+  grpc:
+    port: 50051
+
+gRPC è un modo per far parlare due applicazioni tra loro, un po’ come HTTP/REST, ma più “da microservizi”: invece di chiamare una URL tipo:
+
+GET /health
+
+un client chiama un metodo remoto esposto dal servizio.

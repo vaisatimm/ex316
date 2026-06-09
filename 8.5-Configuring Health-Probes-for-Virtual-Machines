@@ -1,2 +1,18 @@
 ###
 
+The usual readiness probes and liveness probes.
+
+If the wm is not ready it will be removed by the ep of a svc so it does not receice traffic. 
+
+The liveness is the same but when the vm is already running and it fails it gets removed from the ep behing the svc.
+
+THe usual properties: 
+- initialDelaySeconds;
+- periodSeconds;
+- timeoutSeconds; 
+- failureThreshold;
+- successThreshold. 
+
+
+The probes you can do are: httpGet o exec.
+

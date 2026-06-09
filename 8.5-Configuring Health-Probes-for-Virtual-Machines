@@ -14,5 +14,11 @@ THe usual properties:
 - successThreshold. 
 
 
-The probes you can do are: httpGet o exec.
+The probes you can do are: httpGet o exec. But also but less used tcpSocket and grpc
 
+httpGet    -> controllo HTTP
+exec       -> comando nel container
+tcpSocket  -> porta TCP aperta
+grpc       -> health check gRPC, se l'app lo supporta
+
+When you set the probes to the vm, you have to restart them, do not forget that!

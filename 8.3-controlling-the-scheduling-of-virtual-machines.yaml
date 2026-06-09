@@ -46,3 +46,10 @@ We can put a toleration to the vm2 to run to the worker02 even if we have the ta
 
 Under the configuration --> scheduling tab of the vm, you can add: nodeSelector, toleration, Affinity, antiAffinity, podAffinity, podAntiAffinity rule. 
 
+In the spec of the vm we have .spec.runStrategy, and there are 5 possible values: 
+
+Always          = tienila sempre accesa, se si spegne falla ripartire.
+RerunOnFailure  = riaccendila solo se si è fermata per errore
+Manual          = la accendi/spegni tu con virtctl start/stop
+Halted          = deve stare spenta
+Once            = avviala una volta, poi basta

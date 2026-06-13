@@ -1,0 +1,22 @@
+During a live migration the source node and the destination node must have access to read and write the pvc of the datavolume at the same time for some minutes.
+The pod network must not be configured with the bridge binding type.
+
+Ports 49152 and 49153 must be available in the VM's virt-launcher pod; live migration fails if these ports are specified in a masquerade network interface.
+
+If a VM defines a CPU model, then the cluster must have an available node that supports the CPU.
+
+During installation, the Red Hat OpenShift Virtualization operator creates a storage profile resource for each storage class.
+
+Since in the storage profile you do not have info regarding the access mode and volume mode:
+
+accessModes:
+  - ReadWriteMany
+volumeMode: Block
+
+or 
+
+accessModes:
+  - ReadWriteOnce
+volumeMode: Filesystem
+
+when you create a datavolume these info comes from the storageprofile associated with the relative storageclass.

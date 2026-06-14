@@ -10,6 +10,8 @@ apply an eviction too aggressive when you drain a node of ocp virt cluster.
 The default eviction strategy for vm is liveMigrate. 
 
 evictionStrategy: liveMigrate #You have to set it in the vm manifest.
+or
+evictionStrategy: None #It will stay in the broken node.
 
 If the eviction is too aggressive and is going to delete too many vms at the same time causing downtime, then 
 the PodDisruptionBudget will cancel the eviction. 

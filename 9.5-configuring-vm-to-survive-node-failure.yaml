@@ -1,0 +1,6 @@
+Scheduler algorithms:
+
+1 - lowNodeUtilization: use all the nodes, so that every node can use less resources;
+2 - highNodeUtilization: less nodes possibile, nodes exploited at the maximum of thier capacity.
+3 - noScoring: don't use rules to schedule a vm, just schedule it asap.
+

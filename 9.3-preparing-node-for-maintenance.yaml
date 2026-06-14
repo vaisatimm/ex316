@@ -1,0 +1,18 @@
+When you run the: 
+
+$ oc adm drain node/master1 --ignore-daemonsets --delete-emptyDir-data --force  
+
+the vm will be scheduled on anothoer node of che openshift virtualization cluster. 
+But since there is the "PodDisruptionBudget" active that basically means that we can take down, 
+just a specific amount of pods at the same time (remember pods vm live in a pod) then you cannot
+apply an eviction too aggressive when you drain a node of ocp virt cluster.
+
+The default eviction strategy for vm is liveMigrate. 
+
+evictionStrategy: liveMigrate #You have to set it in the vm manifest.
+
+If the eviction is too aggressive and is going to delete too many vms at the same time causing downtime, then 
+the PodDisruptionBudget will cancel the eviction. 
+
+PodDisruptionBudget (PDB): is the amount of pods that can be deleted at the same time to not cause a downtime. 
+

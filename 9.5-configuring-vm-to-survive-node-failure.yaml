@@ -4,3 +4,5 @@ Scheduler algorithms:
 2 - highNodeUtilization: less nodes possibile, nodes exploited at the maximum of thier capacity.
 3 - noScoring: don't use rules to schedule a vm, just schedule it asap.
 
+MachineHealthCheck su bare metal = solo bare-metal IPI, perché IPI usa Machine API, quindi può usare MachineHealthCheck.
+Self Node Remediation Operator = disponibile anche su non-IPI / UPI. 

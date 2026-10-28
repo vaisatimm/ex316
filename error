@@ -1,0 +1,53 @@
+student@workstation ~]$ sed -n '100,150p' \
+> /home/student/.venv/labs/lib/python3.9/site-packages/do316/ansible/ha-node/resources.yaml
+            effect: NoSchedule
+      loop: "{{ taint_vm_hosts }}"
+      ignore_errors: false
+
+    - name: Wait for DataSource to be available
+      kubernetes.core.k8s_info:
+        api_version: cdi.kubevirt.io/v1beta1
+        kind: DataSource
+        name: rhel9
+        namespace: openshift-virtualization-os-images
+        wait: true
+        wait_condition:
+          type: Ready
+          status: "True"
+        wait_sleep: "{{ wait_sleep }}"
+        wait_timeout: "{{ wait_timeout }}"
+
+    - name: "Create VM and DV '{{ vm_name }}'"
+      vars:
+        vm_name: "{{ item.v_name }}"
+        evict: "{{ item.v_evict }}"
+      loop: "{{ vm_names }}"
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ vm_namespace }}"
+        wait: true
+        wait_condition:
+          type: Ready
+          status: "True"
+        wait_sleep: "{{ wait_sleep }}"
+        wait_timeout: "{{ wait_timeout }}"
+        inline:
+          apiVersion: kubevirt.io/v1
+          kind: VirtualMachine
+          metadata:
+            name: "{{ vm_name }}"
+            namespace: "{{ vm_namespace }}"
+            labels:
+              app: "{{ vm_app }}"
+              kubevirt.io/vm: "{{ vm_name }}"
+          spec:
+            dataVolumeTemplates:
+              - apiVersion: cdi.kubevirt.io/v1beta1
+                kind: DataVolume
+                metadata:
+                  name: "{{ vm_name }}"
+                spec:
+                  storage:
+                    resources: {}
+                  sourceRef:
+                    kind: DataSource

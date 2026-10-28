@@ -1,53 +1,49 @@
-student@workstation ~]$ sed -n '100,150p' \
-> /home/student/.venv/labs/lib/python3.9/site-packages/do316/ansible/ha-node/resources.yaml
-            effect: NoSchedule
-      loop: "{{ taint_vm_hosts }}"
-      ignore_errors: false
-
-    - name: Wait for DataSource to be available
-      kubernetes.core.k8s_info:
-        api_version: cdi.kubevirt.io/v1beta1
-        kind: DataSource
-        name: rhel9
-        namespace: openshift-virtualization-os-images
-        wait: true
-        wait_condition:
-          type: Ready
-          status: "True"
-        wait_sleep: "{{ wait_sleep }}"
-        wait_timeout: "{{ wait_timeout }}"
-
-    - name: "Create VM and DV '{{ vm_name }}'"
-      vars:
-        vm_name: "{{ item.v_name }}"
-        evict: "{{ item.v_evict }}"
-      loop: "{{ vm_names }}"
-      kubernetes.core.k8s:
-        state: present
-        namespace: "{{ vm_namespace }}"
-        wait: true
-        wait_condition:
-          type: Ready
-          status: "True"
-        wait_sleep: "{{ wait_sleep }}"
-        wait_timeout: "{{ wait_timeout }}"
-        inline:
-          apiVersion: kubevirt.io/v1
-          kind: VirtualMachine
-          metadata:
-            name: "{{ vm_name }}"
-            namespace: "{{ vm_namespace }}"
-            labels:
-              app: "{{ vm_app }}"
-              kubevirt.io/vm: "{{ vm_name }}"
-          spec:
-            dataVolumeTemplates:
-              - apiVersion: cdi.kubevirt.io/v1beta1
-                kind: DataVolume
-                metadata:
-                  name: "{{ vm_name }}"
-                spec:
-                  storage:
-                    resources: {}
                   sourceRef:
                     kind: DataSource
+[student@workstation ~]$ oc get vm,vmi,dv,pvc -n ha-node
+NAME                              AGE   STATUS               READY
+virtualmachine.kubevirt.io/web1   39m   ErrorUnschedulable   False
+virtualmachine.kubevirt.io/web2   33m   ErrorUnschedulable   False
+
+NAME                                      AGE   PHASE        IP    NODENAME   READY
+virtualmachineinstance.kubevirt.io/web1   39m   Scheduling                    False
+virtualmachineinstance.kubevirt.io/web2   33m   Scheduling                    False
+
+NAME                              PHASE       PROGRESS   RESTARTS   AGE
+datavolume.cdi.kubevirt.io/web1   Succeeded   100.0%                39m
+datavolume.cdi.kubevirt.io/web2   Succeeded   100.0%                33m
+
+NAME                         STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS                                          VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/web1   Bound    pvc-476c7c92-6c99-45b1-817e-4dd2db028097   30Gi       RWX            ocs-external-storagecluster-ceph-rbd-virtualization   <unset>                 39m
+persistentvolumeclaim/web2   Bound    pvc-2ce688b1-7068-4e18-9663-a40fe82e720f   30Gi       RWX            ocs-external-storagecluster-ceph-rbd-virtualization   <unset>                 33m
+[student@workstation ~]$ oc get events -n ha-node --sort-by=.lastTimestamp | tail -30
+39m         Normal    NotFound                            datavolume/web1                                        No PVC found
+39m         Normal    CloneScheduled                      datavolume/web1                                        Cloning from openshift-virtualization-os-images/rhel9-0c9204ba64c2 into ha-node/web1 scheduled
+39m         Normal    Pending                             datavolume/web1                                        PVC web1 Pending
+39m         Warning   Pending                             datavolume/web1                                        Clone Pending
+39m         Warning   ProvisioningFailed                  persistentvolumeclaim/web1                             Error saving claim: Operation cannot be fulfilled on persistentvolumeclaims "web1": the object has been modified; please apply your changes to the latest version and try again
+39m         Normal    SuccessfulCreate                    virtualmachine/web1                                    Started the virtual machine by creating the new virtual machine instance web1
+39m         Normal    Provisioning                        persistentvolumeclaim/web1                             External provisioner is provisioning volume for claim "ha-node/web1"
+39m         Normal    Provisioning                        persistentvolumeclaim/web1                             Assuming an external populator will provision the volume
+39m         Normal    PrepClaimInProgress                 datavolume/web1                                        Prepping PersistentVolumeClaim for DataVolume ha-node/web1
+39m         Normal    ExternalProvisioning                persistentvolumeclaim/web1                             Waiting for a volume to be created either by the external provisioner 'openshift-storage.rbd.csi.ceph.com' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.
+39m         Normal    Bound                               datavolume/web1                                        PVC web1 Bound
+39m         Normal    CloneSucceeded                      datavolume/web1                                        Successfully cloned from openshift-virtualization-os-images/rhel9-0c9204ba64c2 into ha-node/web1
+39m         Normal    NoPods                              poddisruptionbudget/kubevirt-disruption-budget-xdbwb   No matching pods found
+39m         Normal    SuccessfulCreate                    virtualmachineinstance/web1                            Created PodDisruptionBudget kubevirt-disruption-budget-xdbwb
+39m         Normal    SuccessfulCreate                    virtualmachineinstance/web1                            Created virtual machine pod virt-launcher-web1-7xctf
+33m         Normal    SuccessfulDataVolumeCreate          virtualmachine/web2                                    Created DataVolume web2
+33m         Warning   ProvisioningFailed                  persistentvolumeclaim/web2                             Error saving claim: Operation cannot be fulfilled on persistentvolumeclaims "web2": the object has been modified; please apply your changes to the latest version and try again
+33m         Normal    CloneScheduled                      datavolume/web2                                        Cloning from openshift-virtualization-os-images/rhel9-0c9204ba64c2 into ha-node/web2 scheduled
+33m         Normal    Pending                             datavolume/web2                                        PVC web2 Pending
+33m         Warning   Pending                             datavolume/web2                                        Clone Pending
+33m         Normal    CloneFromSnapshotSourceInProgress   datavolume/web2                                        Creating PVC from snapshot source is in progress (for snapshot openshift-virtualization-os-images/rhel9-0c9204ba64c2)
+33m         Normal    Provisioning                        persistentvolumeclaim/web2                             External provisioner is provisioning volume for claim "ha-node/web2"
+33m         Normal    Provisioning                        persistentvolumeclaim/web2                             Assuming an external populator will provision the volume
+33m         Normal    PrepClaimInProgress                 datavolume/web2                                        Prepping PersistentVolumeClaim for DataVolume ha-node/web2
+33m         Normal    ExternalProvisioning                persistentvolumeclaim/web2                             Waiting for a volume to be created either by the external provisioner 'openshift-storage.rbd.csi.ceph.com' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.
+33m         Normal    RebindInProgress                    datavolume/web2                                        Rebinding PersistentVolumeClaim for DataVolume ha-node/web2
+33m         Normal    Bound                               datavolume/web2                                        PVC web2 Bound
+33m         Normal    CloneSucceeded                      datavolume/web2                                        Successfully cloned from openshift-virtualization-os-images/rhel9-0c9204ba64c2 into ha-node/web2
+33m         Normal    SuccessfulCreate                    virtualmachine/web2                                    Started the virtual machine by creating the new virtual machine instance web2
+33m         Normal    SuccessfulCreate                    virtualmachineinstance/web2                            Created virtual machine pod virt-launcher-web2-48cxw

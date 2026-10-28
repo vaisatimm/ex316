@@ -1,0 +1,80 @@
+        - name: ens4
+          stp-hairpin-mode: false
+          stp-path-cost: 100
+          stp-priority: 32
+          vlan:
+            enable-native: false
+            mode: trunk
+            trunk-tags:
+            - id-range:
+                max: 4094
+                min: 2
+      ethtool:
+        feature:
+          highdma: true
+          rx-gro: true
+          rx-gro-list: false
+          rx-udp-gro-forwarding: false
+          tx-checksum-ip-generic: true
+          tx-esp-segmentation: true
+          tx-fcoe-segmentation: false
+          tx-generic-segmentation: true
+          tx-gre-csum-segmentation: true
+          tx-gre-segmentation: true
+          tx-gso-list: false
+          tx-gso-partial: true
+          tx-gso-robust: true
+--
+      name: br0
+      state: up
+      type: linux-bridge
+      wait-ip: any
+    - accept-all-mac-addresses: false
+      controller: br-ex
+      driver: virtio_net
+      ethernet:
+        auto-negotiation: false
+      ethtool:
+        coalesce:
+          rx-frames: 1
+          rx-usecs: 0
+          tx-frames: 1
+          tx-usecs: 0
+        feature:
+          rx-gro: true
+          rx-gro-hw: true
+          rx-gro-list: false
+          rx-udp-gro-forwarding: true
+          tx-checksum-ip-generic: true
+          tx-generic-segmentation: true
+          tx-nocache-copy: false
+          tx-tcp-ecn-segmentation: true
+          tx-tcp-mangleid-segmentation: false
+          tx-tcp-segmentation: true
+--
+      name: ens4
+      permanent-mac-address: 52:54:00:01:33:0E
+      state: up
+      type: ethernet
+    - accept-all-mac-addresses: false
+      controller: ovs-system
+      ethernet: {}
+      ethtool:
+        feature:
+          rx-checksum: true
+          rx-gro: true
+          rx-gro-list: false
+          rx-udp-gro-forwarding: false
+          tx-checksum-ip-generic: true
+          tx-generic-segmentation: true
+          tx-gso-list: true
+          tx-nocache-copy: false
+          tx-scatter-gather-fraglist: true
+          tx-sctp-segmentation: true
+          tx-tcp-ecn-segmentation: true
+          tx-tcp-mangleid-segmentation: true
+          tx-tcp-segmentation: true
+          tx-tcp6-segmentation: true
+          tx-udp-segmentation: true
+      ipv4:
+        enabled: false

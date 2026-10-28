@@ -1,0 +1,13 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: bridge.network.kubevirt.io/br0
+  creationTimestamp: "2026-10-14T23:16:59Z"
+  generation: 1
+  name: ankh-morpork
+  namespace: uberwald
+  resourceVersion: "3286154"
+  uid: da767470-c71a-4e9c-b2f3-363cae724231
+spec:
+  config: '{"name":"ankh-morpork","type":"bridge","cniVersion":"0.3.1","bridge":"br0","macspoofchk":true,"ipam":{},"preserveDefaultVlan":false}'

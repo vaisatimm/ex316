@@ -1,0 +1,44 @@
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  annotations:
+    description: Linux bridge with ens4 as a port
+    nmstate.io/webhook-mutating-timestamp: "1792011333349450465"
+  creationTimestamp: "2026-10-14T20:55:33Z"
+  generation: 1
+  name: br0-ens4-policy
+  resourceVersion: "8258560"
+  uid: 29af36f2-c2b2-44d3-abcf-dcee6bfe4941
+spec:
+  desiredState:
+    interfaces:
+    - bridge:
+        port:
+        - name: ens4
+      ipv4:
+        dhcp: true
+        enabled: true
+      name: br0
+      state: up
+      type: linux-bridge
+  nodeSelector:
+    external-network: "true"
+status:
+  conditions:
+  - lastHeartbeatTime: "2026-10-28T08:01:04Z"
+    lastTransitionTime: "2026-10-28T08:01:04Z"
+    message: 2/2 nodes successfully configured
+    reason: SuccessfullyConfigured
+    status: "True"
+    type: Available
+  - lastHeartbeatTime: "2026-10-28T08:01:04Z"
+    lastTransitionTime: "2026-10-28T08:01:04Z"
+    reason: SuccessfullyConfigured
+    status: "False"
+    type: Degraded
+  - lastHeartbeatTime: "2026-10-28T08:01:04Z"
+    lastTransitionTime: "2026-10-28T08:01:04Z"
+    reason: ConfigurationProgressing
+    status: "False"
+    type: Progressing
+  lastUnavailableNodeCountUpdate: "2026-10-14T20:55:44Z"
